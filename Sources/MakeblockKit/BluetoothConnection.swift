@@ -2,20 +2,20 @@
 //  BluetoothConnection.swift
 //  Makeblock
 //
-//  Created by Wang Yu on 6/6/16.
-//  Copyright © 2016 Makeblock. All rights reserved.
-//
 
 import Foundation
 import CoreBluetooth
 
-/// An bluetooth device
-public class BluetoothDevice: Device{
+///An bluetooth device
+public class BluetoothDevice: Device
+{
     var peripheral: CBPeripheral?
     var RSSI: NSNumber?
 
-    func distanceByRSSI() -> Float{
-        if let rssi = RSSI {
+    func distanceByRSSI() -> Float
+    {
+        if let rssi = RSSI
+        {
             return powf(10.0,((abs(rssi.floatValue)-50.0)/50.0))*0.7
         }
         return -1.0
@@ -29,34 +29,37 @@ public class BluetoothDevice: Device{
      
      - returns: nil
      */
-    public init(peri: CBPeripheral) {
+    public init(peri: CBPeripheral)
+    {
         super.init()
         peripheral = peri
     }
     
-    public override init () {
+    public override init ()
+    {
         super.init()
     }
 }
 
-/// The bluetooth connection
-public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate, CBPeripheralDelegate {
-    
-    // Bluetooth Module Characteristics
+///The bluetooth connection
+public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate, CBPeripheralDelegate
+{
+    //Bluetooth Module Characteristics
     let readWriteServiceUUID = "FFE1"
     let readNotifyCharacteristicUUID = "FFE2"
     let writeCharacteristicUUID = "FFE3"
-    /// the maximum length of the package that can be send
-    let notifyMTU = 20      // maximum 20 bytes in a single ble package
     
-    // CoreBluetooth related
+    ///The maximum length of the package that can be send
+    let notifyMTU = 20 // maximum 20 bytes in a single ble package
+    
+    //CoreBluetooth related
     var centralManager: CBCentralManager?
     var peripherals: [CBPeripheral] = []
     var activePeripheral: CBPeripheral?
     var writeCharacteristic: CBCharacteristic?
     var notifyReady = false
     
-    // Connection related
+    //Connection related
     var deviceList: [BluetoothDevice] = []
     public var onConnect: (() -> Void)?
     public var onDisconnect: (() -> Void)?
@@ -70,24 +73,27 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
         centralManager = CBCentralManager(delegate: self, queue: DispatchQueue.main)
     }
     
-    // Connection Methods
-    /// Start scanning Bluetooth devices
-    public func startDiscovery() {
+    //Connection Methods
+    ///Start scanning Bluetooth devices
+    public func startDiscovery()
+    {
         centralManager?.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: 0])
     }
     
-    /// Stop scanning Bluetooth devices
-    public func stopDiscovery() {
+    ///Stop scanning Bluetooth devices
+    public func stopDiscovery()
+    {
         centralManager?.stopScan()
     }
     
-    /// Stop and start scanning Bluetooth devices
-    func resetDiscovery() {
+    ///Stop and start scanning Bluetooth devices
+    func resetDiscovery()
+    {
         stopDiscovery()
         startDiscovery()
     }
     
-    /// Connect to a bluetooth device
+    ///Connect to a bluetooth device
     public func connect(device: Device)
     {
         if let bluetoothDevice = device as? BluetoothDevice
@@ -97,14 +103,14 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
         }
     }
     
-    /// TODO: Connect to the nearest bluetooth device after 5 seconds
+    ///TODO: Connect to the nearest bluetooth device after 5 seconds
     public func connectDefaultDevice()
     {
         isConnectingDefaultDevice = true
         startDiscovery()
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 5)
         {
-            // connect to the nearest devices after 5 seconds
+            //Connect to the nearest devices after 5 seconds
             if !self.deviceList.isEmpty
             {
                 self.connect(device: self.deviceList[0])
@@ -112,24 +118,33 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
         }
     }
     
-    public func disconnect() {
-        if let peripheral = activePeripheral {
+    public func disconnect()
+    {
+        if let peripheral = activePeripheral
+        {
             centralManager?.cancelPeripheralConnection(peripheral)
             resetDiscovery()
         }
     }
     
-    public func send(data: NSData) {
-        if let peripheral = activePeripheral {
-            if peripheral.state == .connected {
-                if let characteristic = writeCharacteristic {
+    public func send(data: NSData)
+    {
+        if let peripheral = activePeripheral
+        {
+            if peripheral.state == .connected
+            {
+                if let characteristic = writeCharacteristic
+                {
                     var sendIndex = 0
-                    while true {
+                    while true
+                    {
                         var amountToSend = data.length - sendIndex
-                        if amountToSend > notifyMTU {
+                        if amountToSend > notifyMTU
+                        {
                             amountToSend = notifyMTU
                         }
-                        if amountToSend <= 0 {
+                        if amountToSend <= 0
+                        {
                             return;
                         }
                         let dataChunk = NSData(bytes: data.bytes+sendIndex, length: amountToSend)
@@ -141,12 +156,17 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
         }
     }
     
-    // CoreBluetooth Methods
-    public func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        if centralManager == central {
-            if central.state == .poweredOn {
+    //CoreBluetooth Methods
+    public func centralManagerDidUpdateState(_ central: CBCentralManager)
+    {
+        if centralManager == central
+        {
+            if central.state == .poweredOn
+            {
                 startDiscovery()
-            } else {
+            }
+            else
+            {
                 resetDiscovery()
             }
         }
@@ -155,6 +175,7 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
     public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber)
     {
         guard centralManager == central else { return }
+        
         if !peripherals.contains(peripheral)
         {
             if let name = peripheral.name, name.hasPrefix("Makeblock")
@@ -182,10 +203,13 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
         }
     }
     
-    /// Connected says central manager
-    public func centralManager(central: CBCentralManager, didConnectPeripheral peripheral: CBPeripheral) {
-        if centralManager!.isEqual(central) {
-            if !peripherals.contains(peripheral) {
+    ///Connected says central manager
+    public func centralManager(central: CBCentralManager, didConnectPeripheral peripheral: CBPeripheral)
+    {
+        if centralManager!.isEqual(central)
+        {
+            if !peripherals.contains(peripheral)
+            {
                 peripherals.append(peripheral)
                 print("added undiscovered peripheral \(peripheral.identifier.uuidString)")
             }
@@ -196,13 +220,13 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
         }
     }
     
-    /// TODO: Fail to connect says central manager
+    ///TODO: Fail to connect says central manager
     public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?)
     {
         print("failed to connect peripheral")
     }
     
-    /// Disconnected says central manager
+    ///Disconnected says central manager
     public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?)
     {
         if let callback = onDisconnect
@@ -211,7 +235,7 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
         }
     }
     
-    /// Service discovered
+    ///Service discovered
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?)
     {
         if peripheral == activePeripheral
@@ -230,10 +254,13 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
         }
     }
     
-    /// If both write characteristic and notify is setup, call "onConnected" callback
-    func checkAndNotifyIfConnected() {
-        if notifyReady && writeCharacteristic != nil {
-            if let callback = onConnect {
+    ///If both write characteristic and notify is setup, call "onConnected" callback
+    func checkAndNotifyIfConnected()
+    {
+        if notifyReady && writeCharacteristic != nil
+        {
+            if let callback = onConnect
+            {
                 callback()
             }
         }
