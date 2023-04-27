@@ -1,3 +1,3 @@
 # MakeblockKit
 
-A description of this package.
+Makeblock's framework for Swift Language
