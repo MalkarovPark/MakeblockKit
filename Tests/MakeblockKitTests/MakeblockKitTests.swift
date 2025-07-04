@@ -13,3 +13,5 @@ final class MakeblockKitTests: XCTestCase {
 //Test on development.
 
 //Point 1
+
+//Point 2
