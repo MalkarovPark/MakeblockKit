@@ -9,9 +9,3 @@ final class MakeblockKitTests: XCTestCase {
         //XCTAssertEqual(MakeblockKit().text, "Hello, World!")
     }
 }
-
-//Test on development.
-
-//Point 1
-
-//Point 2
